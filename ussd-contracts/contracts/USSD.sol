@@ -53,9 +53,9 @@ contract USSD is
 
     /**
         @dev restrict calls only by STABLE_CONTROL_ROLE role
-        //note @paul Who has the STABLE_CONTROL_ROLE role ?  
-     */
-     // audit-issue @mody this role is not granted to any entity in the code
+     **/
+    //note @paul Who has the STABLE_CONTROL_ROLE role ?  
+    //audit-issue @mody this role is not granted to any entity in the code
     modifier onlyControl() {
         require(hasRole(STABLE_CONTROL_ROLE, msg.sender), "control only");
         _;
@@ -175,7 +175,7 @@ contract USSD is
     }
 
     /// @dev Return how much STABLECOIN does user receive for AMOUNT of asset
-    // audit-issue @mody conversion seems wrong in cases where amount is not in 18 decimals. shuold normalize amount to 18 decomals first. 
+    //audit-issue @mody conversion seems wrong in cases where amount is not in 18 decimals. shuold normalize amount to 18 decomals first. 
     function calculateMint(address _token, uint256 _amount) public view returns (uint256 stableCoinAmount) {
         uint256 assetPrice = collateral[getCollateralIndex(_token)].oracle.getPriceUSD();
         //audit @paul Carefull as the WBTC has only 8 decimals and not 1e18
@@ -186,8 +186,8 @@ contract USSD is
                          ACCOUNTING LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    // audit-issue @mody gas optimization, keep internal accounting for balances instead of making all those external galls
-    // audit-issue @mody looks like there is an extra *1e18 here
+    //audit-issue @mody gas optimization, keep internal accounting for balances instead of making all those external galls
+    //audit-issue @mody looks like there is an extra *1e18 here
     function collateralFactor() public view override returns (uint256) {
         //audit @paul Pretty sure there's an issue with WBTC as is has 8 decimals only on mainnet
         uint256 totalAssetsUSD = 0;
@@ -203,7 +203,7 @@ contract USSD is
                 1e18;
         }
 
-        // audit-issue @mody relace 1e6 wit Decimals() if the deployed contract is not 6 decimals, this will fail. 
+        //audit-issue @mody relace 1e6 wit Decimals() if the deployed contract is not 6 decimals, this will fail. 
 
         return (totalAssetsUSD * 1e6) / totalSupply();
     }
@@ -240,7 +240,7 @@ contract USSD is
         uniRouter = IV3SwapRouter(_router);
     }
 
-// audit-issue @mody sandwich attack vulnerability, amountoutminimum does not implement slippage
+//audit-issue @mody sandwich attack vulnerability, amountoutminimum does not implement slippage
     function UniV3SwapInput(
         bytes memory _path,
         uint256 _sellAmount
