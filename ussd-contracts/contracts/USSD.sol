@@ -230,6 +230,7 @@ contract USSD is
         uniRouter = IV3SwapRouter(_router);
     }
 
+// audit-issue @mody sandwich attack vulnerability, amountoutminimum does not implement slippage
     function UniV3SwapInput(
         bytes memory _path,
         uint256 _sellAmount
