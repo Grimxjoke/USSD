@@ -49,6 +49,7 @@ contract USSD is
     /**
         @dev restrict calls only by STABLE_CONTROL_ROLE role
      */
+     // audit-issue @mody this role is not granted to any entity in the code
     modifier onlyControl() {
         require(hasRole(STABLE_CONTROL_ROLE, msg.sender), "control only");
         _;
