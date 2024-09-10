@@ -20,6 +20,7 @@ contract StableOracleWBTC is IStableOracle {
 
     function getPriceUSD() external view override returns (uint256) {
         //(uint80 roundID, int256 price, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) = priceFeed.latestRoundData();
+        //audit @paul Can Price be mnipulated due to stale price ? I think so, need to get back on Oracle Manipulation Solodit findings
         (, int256 price, , , ) = priceFeed.latestRoundData();
         // chainlink price data is 8 decimals for WETH/USD
         return uint256(price) * 1e10;

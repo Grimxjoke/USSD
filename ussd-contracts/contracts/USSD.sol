@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.6;
 
-//note For Myself -> What is it exactly -> I've seen many time but don't really know it
+//note @paul For Myself -> What is it exactly -> I've seen many time but don't really know it
 pragma abicoder v2;
 
 
-//note Why using Upragdable when it should be Immutable from the Doc ? 
+//note @paul Why using Upragdable when it should be Immutable from the Doc ? 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
@@ -14,7 +14,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "./interfaces/IStableOracle.sol";
 import "./interfaces/IUSSDRebalancer.sol";
 
-//note Probably gonna be used for swapping WBTC and WETH
+//note @paul Probably gonna be used for swapping WBTC and WETH
 import "@uniswap/swap-router-contracts/contracts/interfaces/IV3SwapRouter.sol";
 
 /**
@@ -53,7 +53,7 @@ contract USSD is
 
     /**
         @dev restrict calls only by STABLE_CONTROL_ROLE role
-        //note Who has the STABLE_CONTROL_ROLE role ?  
+        //note @paul Who has the STABLE_CONTROL_ROLE role ?  
      */
      // audit-issue @mody this role is not granted to any entity in the code
     modifier onlyControl() {
@@ -98,7 +98,7 @@ contract USSD is
         bytes memory _pathsell,
         uint256 index
     ) public onlyControl {
-        //note There is not Check to verify that the data are correct and valid 
+        //note @paul There is not Check to verify that the data are correct and valid 
         CollateralInfo memory newCollateral = CollateralInfo({
             token: _address,
             mint: _mint,
@@ -178,7 +178,7 @@ contract USSD is
     // audit-issue @mody conversion seems wrong in cases where amount is not in 18 decimals. shuold normalize amount to 18 decomals first. 
     function calculateMint(address _token, uint256 _amount) public view returns (uint256 stableCoinAmount) {
         uint256 assetPrice = collateral[getCollateralIndex(_token)].oracle.getPriceUSD();
-        //audit Carefull as the WBTC has only 8 decimals and not 1e18
+        //audit @paul Carefull as the WBTC has only 8 decimals and not 1e18
         return (((assetPrice * _amount) / 1e18) * (10 ** decimals())) / (10 ** IERC20MetadataUpgradeable(_token).decimals());
     }
 
@@ -189,7 +189,7 @@ contract USSD is
     // audit-issue @mody gas optimization, keep internal accounting for balances instead of making all those external galls
     // audit-issue @mody looks like there is an extra *1e18 here
     function collateralFactor() public view override returns (uint256) {
-        //audit Pretty sure there's an issue with WBTC as is has 8 decimals only on mainnet
+        //audit @paul Pretty sure there's an issue with WBTC as is has 8 decimals only on mainnet
         uint256 totalAssetsUSD = 0;
         for (uint256 i = 0; i < collateral.length; i++) {
             totalAssetsUSD +=
@@ -213,7 +213,7 @@ contract USSD is
     //////////////////////////////////////////////////////////////*/
 
     function setRebalancer(address _rebalancer) public onlyControl {
-        //note What is the rebalancer 
+        //note @paul What is the rebalancer 
         rebalancer = IUSSDRebalancer(_rebalancer);
     }
 
@@ -256,7 +256,7 @@ contract USSD is
         uniRouter.exactInput(params);
     }
 
-    //note unsafe to approve max ammount
+    //note @paul unsafe to approve max ammount
     function approveToRouter(address _token) public {
         IERC20Upgradeable(_token).approve(
             address(uniRouter),

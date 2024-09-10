@@ -32,6 +32,7 @@ contract StableOracleDAI is IStableOracle {
 
     function getPriceUSD() external view override returns (uint256) {
         address[] memory pools = new address[](1);
+        //audit-ok @paul Address of "Uniswap V3: DAI 2" : https://etherscan.io/address/0x60594a405d53811d3BC4766596EFD80fd545A270
         pools[0] = 0x60594a405d53811d3BC4766596EFD80fd545A270;
         uint256 DAIWethPrice = DAIEthOracle.quoteSpecificPoolsWithTimePeriod(
             1000000000000000000, // 1 Eth
@@ -45,6 +46,7 @@ contract StableOracleDAI is IStableOracle {
 
         // chainlink price data is 8 decimals for WETH/USD, so multiply by 10 decimals to get 18 decimal fractional
         //(uint80 roundID, int256 price, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) = priceFeedDAIETH.latestRoundData();
+        //audit  @paul Don't we need to check other thing when calling the Oracle ? 
         (, int256 price, , , ) = priceFeedDAIETH.latestRoundData();
 
         return

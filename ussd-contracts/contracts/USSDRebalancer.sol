@@ -24,14 +24,15 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
     address public USSD;
 
     // boundary to make rebalancing
+    //note @paul What is Threshold ? 
     uint256 private threshold;
 
     // ratios of collateralization for different collateral accumulating
-    //note WTF is flutterRatio ? 
+    //note @paul What is flutterRatios ? 
     uint256[] public flutterRatios;
     
     // base asset for other pool leg (DAI)
-    //note WTF is that also ? 
+    //note @paul What is baseAsset ? 
     address private baseAsset;
 
     // role to perform rebalancer management functions
@@ -40,7 +41,7 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
     function initialize(address _ussd) public initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
-        //note Does it mean that it can rebalance only 0.01 USSD at a time ? as USSD decimals is 6
+        //note @paul Does it mean that it can rebalance only 0.01 USSD at a time ? as USSD decimals is 6
         threshold = 1e4;
         USSD = _ussd;
     }
@@ -58,6 +59,7 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
         return address(uniPool);
     }
 
+
     function setTreshold(uint256 _threshold) public onlyControl {
       threshold = _threshold;
     }
@@ -74,12 +76,12 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
     function getOwnValuation() public view returns (uint256 price) {
       (uint160 sqrtPriceX96,,,,,,) =  uniPool.slot0();
       if(uniPool.token0() == USSD) {
-        //note need to check the uniswap logic here 
+        //note @paul need to check the uniswap logic here 
         price = uint(sqrtPriceX96)*(uint(sqrtPriceX96))/(1e6) >> (96 * 2);
       } else {
         price = uint(sqrtPriceX96)*(uint(sqrtPriceX96))*(1e18 /* 1e12 + 1e6 decimal representation */) >> (96 * 2);
         // flip the fraction
-        //note Hardcoded values very dangerous of use
+        //note @paul Hardcoded values very dangerous of use
         price = (1e24 / price) / 1e12;
       }
     }
@@ -94,13 +96,14 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
       return (vol2, vol1);
     }
 
+  //note @paul what's Rebalancing in details 
     function rebalance() override public {
       uint256 ownval = getOwnValuation();
       (uint256 USSDamount, uint256 DAIamount) = getSupplyProportion();
-      //audit If 1e2 < ownval < 1e10, Nothing happen. Is that Logic or expected ?  
+      //audit @paul If 1e2 < ownval < 1e10, Nothing happen. Is that Logic or expected ?  
       if (ownval < 1e6 - threshold) {
         // peg-down recovery
-        //note What the hell is DAI doing here ? 
+        //note @paul What the hell is DAI doing here ? 
         BuyUSSDSellCollateral((USSDamount - DAIamount / 1e12)/2);
       } else if (ownval > 1e6 + threshold) {
         // mint and buy collateral
@@ -113,6 +116,8 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
       }
     }
 
+
+    //note @paul Those 2 function :SellUSSDBuyCollateral and BuyUSSDSellCollateral SHOULD be symetrical or almost (if including fees). 
     function BuyUSSDSellCollateral(uint256 amountToBuy) internal {
       CollateralInfo[] memory collateral = IUSSD(USSD).collateralList();
       //uint amountToBuyLeftUSD = amountToBuy * 1e12 * 1e6 / getOwnValuation();
@@ -158,6 +163,7 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
 
       if (DAItosell > 0) {
         if (uniPool.token0() == USSD) {
+          //note @paul WTF is that ? 
             IUSSD(USSD).UniV3SwapInput(bytes.concat(abi.encodePacked(uniPool.token1(), hex"0001f4", uniPool.token0())), DAItosell);
         } else {
             IUSSD(USSD).UniV3SwapInput(bytes.concat(abi.encodePacked(uniPool.token0(), hex"0001f4", uniPool.token1())), DAItosell);
