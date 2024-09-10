@@ -27,9 +27,11 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
     uint256 private threshold;
 
     // ratios of collateralization for different collateral accumulating
+    //note WTF is flutterRatio ? 
     uint256[] public flutterRatios;
     
     // base asset for other pool leg (DAI)
+    //note WTF is that also ? 
     address private baseAsset;
 
     // role to perform rebalancer management functions
@@ -38,6 +40,7 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
     function initialize(address _ussd) public initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
+        //note Does it mean that it can rebalance only 0.01 USSD at a time ? as USSD decimals is 6
         threshold = 1e4;
         USSD = _ussd;
     }
@@ -71,10 +74,12 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
     function getOwnValuation() public view returns (uint256 price) {
       (uint160 sqrtPriceX96,,,,,,) =  uniPool.slot0();
       if(uniPool.token0() == USSD) {
+        //note need to check the uniswap logic here 
         price = uint(sqrtPriceX96)*(uint(sqrtPriceX96))/(1e6) >> (96 * 2);
       } else {
         price = uint(sqrtPriceX96)*(uint(sqrtPriceX96))*(1e18 /* 1e12 + 1e6 decimal representation */) >> (96 * 2);
         // flip the fraction
+        //note Hardcoded values very dangerous of use
         price = (1e24 / price) / 1e12;
       }
     }
@@ -92,8 +97,10 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
     function rebalance() override public {
       uint256 ownval = getOwnValuation();
       (uint256 USSDamount, uint256 DAIamount) = getSupplyProportion();
+      //audit If 1e2 < ownval < 1e10, Nothing happen. Is that Logic or expected ?  
       if (ownval < 1e6 - threshold) {
         // peg-down recovery
+        //note What the hell is DAI doing here ? 
         BuyUSSDSellCollateral((USSDamount - DAIamount / 1e12)/2);
       } else if (ownval > 1e6 + threshold) {
         // mint and buy collateral
