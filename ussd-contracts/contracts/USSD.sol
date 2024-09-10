@@ -167,6 +167,7 @@ contract USSD is
     }
 
     /// @dev Return how much STABLECOIN does user receive for AMOUNT of asset
+    // audit-issue @mody conversion seems wrong in cases where amount is not in 18 decimals. shuold normalize amount to 18 decomals first. 
     function calculateMint(address _token, uint256 _amount) public view returns (uint256 stableCoinAmount) {
         uint256 assetPrice = collateral[getCollateralIndex(_token)].oracle.getPriceUSD();
         return (((assetPrice * _amount) / 1e18) * (10 ** decimals())) / (10 ** IERC20MetadataUpgradeable(_token).decimals());
@@ -176,6 +177,8 @@ contract USSD is
                          ACCOUNTING LOGIC
     //////////////////////////////////////////////////////////////*/
 
+    // audit-issue @mody gas optimization, keep internal accounting for balances instead of making all those external galls
+    // audit-issue @mody looks like there is an extra *1e18 here
     function collateralFactor() public view override returns (uint256) {
         uint256 totalAssetsUSD = 0;
         for (uint256 i = 0; i < collateral.length; i++) {
@@ -189,6 +192,8 @@ contract USSD is
                     collateral[i].oracle.getPriceUSD()) /
                 1e18;
         }
+
+        // audit-issue @mody relace 1e6 wit Decimals() if the deployed contract is not 6 decimals, this will fail. 
 
         return (totalAssetsUSD * 1e6) / totalSupply();
     }
