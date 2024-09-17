@@ -46,8 +46,14 @@ contract StableOracleDAI is IStableOracle {
 
         // chainlink price data is 8 decimals for WETH/USD, so multiply by 10 decimals to get 18 decimal fractional
         //(uint80 roundID, int256 price, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) = priceFeedDAIETH.latestRoundData();
-        //audit  @paul Don't we need to check other thing when calling the Oracle ? 
+        //audit-issue @paul [H-01] Oracle data feed can be outdated yet used anyways which will impact payment logic 
+        //https://solodit.xyz/issues/h-01-oracle-data-feed-can-be-outdated-yet-used-anyways-which-will-impact-payment-logic-code4rena-juicebox-juicebox-v2-contest-git
         (, int256 price, , , ) = priceFeedDAIETH.latestRoundData();
+
+
+        //audit-issue Calculation is completely incorect: Doesn't return USD/DAI accuratly:
+        // https://github.com/sherlock-audit/2023-05-USSD-judging/issues/66
+        // Recommendation: Use Chainlink Oracle instead of weird Calculations 
 
         return
             (wethPriceUSD * 1e18) /

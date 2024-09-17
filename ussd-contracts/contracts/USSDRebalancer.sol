@@ -73,6 +73,10 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
     }
 
     /// @dev get price estimation to DAI using pool address and uniswap price
+    //audit-issue @correction High Chance of overflow if it enter the "else" statement as SqrtPriceX96 has 96bits for decimals and 1e18 take 60bits, 
+    //note to Myself: Needs to get deeper on this issue, not fully understand it but looks interesting. A lot of duplicate so I assume it's a common issue to be aware of.
+    // https://github.com/sherlock-audit/2023-05-USSD-judging/issues/79
+    // Recommendation : Consider making sure the calculations are performed safely. Potentially converting the sqrtPrice to a 60x18 format and performing arithmetic operations using a library.
     function getOwnValuation() public view returns (uint256 price) {
       (uint160 sqrtPriceX96,,,,,,) =  uniPool.slot0();
       if(uniPool.token0() == USSD) {
@@ -87,6 +91,9 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
     }
 
     /// @dev return pool balances with USSD first
+    //audit-issue @correction Malicious User can transfer USSD or DAI to the pool, changing the return value of "USSDRebalancer.getSupplyProportion();"
+    // https://github.com/sherlock-audit/2023-05-USSD-judging/issues/405
+    // Recommendation:  Don't use the balanceOf(pool) as reliable data as it can be easily manipulated by anyone -> especially using flashLoans
     function getSupplyProportion() public view returns (uint256, uint256) {
       uint256 vol1 = IERC20Upgradeable(uniPool.token0()).balanceOf(address(uniPool));
       uint256 vol2 = IERC20Upgradeable(uniPool.token1()).balanceOf(address(uniPool));
@@ -96,7 +103,10 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
       return (vol2, vol1);
     }
 
-  //note @paul what's Rebalancing in details 
+   
+  //audit-issue @correction Assume DAI is 1$ wich isn't alway's the case. 
+  // https://github.com/sherlock-audit/2023-05-USSD-judging/issues/714
+  // Recommendation : Convert DAI to USD in "getOwnValuation" using Chanlink Oracle
     function rebalance() override public {
       uint256 ownval = getOwnValuation();
       (uint256 USSDamount, uint256 DAIamount) = getSupplyProportion();
@@ -130,6 +140,11 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
           // sell a portion of collateral and exit
           if (collateral[i].pathsell.length > 0) {
             uint256 amountBefore = IERC20Upgradeable(baseAsset).balanceOf(USSD);
+            //audit-issue @correction  Incorrect decimals in amountToSellUnits calculation
+            // https://github.com/sherlock-audit/2023-05-USSD-judging/issues/58
+            //note to Myself: Get a Bit confuse by decimals -> Need to get deeper on this issue and Decimals in general. 
+            //
+            
             uint256 amountToSellUnits = IERC20Upgradeable(collateral[i].token).balanceOf(USSD) * ((amountToBuyLeftUSD * 1e18 / collateralval) / 1e18) / 1e18;
             IUSSD(USSD).UniV3SwapInput(collateral[i].pathsell, amountToSellUnits);
             amountToBuyLeftUSD -= (IERC20Upgradeable(baseAsset).balanceOf(USSD) - amountBefore);
@@ -209,6 +224,9 @@ contract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {
       for (uint256 i = 0; i < collateral.length; i++) {
         uint256 collateralval = IERC20Upgradeable(collateral[i].token).balanceOf(USSD) * 1e18 / (10**IERC20MetadataUpgradeable(collateral[i].token).decimals()) * collateral[i].oracle.getPriceUSD() / 1e18;
         if (collateralval * 1e18 / ownval < collateral[i].ratios[flutter]) {
+          //audit-issue @correction Statement Always true. Intersersting Finding. 20 persons found it so very commong. Mandatory Need to find issue like that. 
+          // https://github.com/sherlock-audit/2023-05-USSD-judging/issues/61
+          // Recommendation Replace the OR "||" by AND "&&"
           if (collateral[i].token != uniPool.token0() || collateral[i].token != uniPool.token1()) {
             // don't touch DAI if it's needed to be bought (it's already bought)
             IUSSD(USSD).UniV3SwapInput(collateral[i].pathbuy, daibought/portions);
